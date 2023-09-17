@@ -7,6 +7,7 @@ require (
 	github.com/elastic/go-ucfg v0.8.6
 	github.com/elastic/gosigar v0.14.2
 	github.com/flynn-archive/go-shlex v0.0.0-20150515145356-3f9db97f8568
+	github.com/grafana/pyroscope-go v1.0.2
 	github.com/hashicorp/go-version v1.6.0
 	github.com/kardianos/service v1.2.2
 	github.com/natefinch/lumberjack v2.0.0+incompatible
@@ -19,6 +20,7 @@ require (
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.3 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect

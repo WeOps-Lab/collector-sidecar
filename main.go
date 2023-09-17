@@ -66,6 +66,26 @@ func init() {
 
 }
 
+func commandLineSetup() error {
+	flag.Parse()
+
+	if *printVersion {
+		fmt.Printf("Graylog Collector Sidecar version %s%s (%s) [%s/%s]\n",
+			common.CollectorVersion,
+			common.CollectorVersionSuffix,
+			common.GitRevision,
+			runtime.Version(),
+			runtime.GOARCH)
+		os.Exit(0)
+	}
+
+	if _, err := os.Stat(*configurationFile); os.IsNotExist(err) {
+		return errors.New("Unable to open configuration file: " + *configurationFile)
+	}
+
+	return nil
+}
+
 func main() {
 	err := commandLineSetup()
 	if err != nil {
@@ -100,15 +120,15 @@ func main() {
 	ctx := context.NewContext()
 	err = ctx.LoadConfig(configurationFile)
 	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
+		// log error stack
+		log.Fatalln("load configuration file fail: "+*configurationFile, err)
 	} else {
 		// Persist path for later reloads
 		cfgfile.SetConfigPath(*configurationFile)
 	}
 	if cfgfile.ValidateConfig() {
 		// if ctx.LoadConfig didn't fail already print message and exit
-		fmt.Println("Config OK")
+		log.Info("Configuration file loaded successfully")
 		return
 	}
 
@@ -126,24 +146,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func commandLineSetup() error {
-	flag.Parse()
-
-	if *printVersion {
-		fmt.Printf("Graylog Collector Sidecar version %s%s (%s) [%s/%s]\n",
-			common.CollectorVersion,
-			common.CollectorVersionSuffix,
-			common.GitRevision,
-			runtime.Version(),
-			runtime.GOARCH)
-		os.Exit(0)
-	}
-
-	if _, err := os.Stat(*configurationFile); os.IsNotExist(err) {
-		return errors.New("Unable to open configuration file: " + *configurationFile)
-	}
-
-	return nil
 }

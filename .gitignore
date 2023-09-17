@@ -46,3 +46,8 @@ dist/collectors/
 
 /sidecar.yml
 resource_windows.syso
+
+generated
+node-id
+logs
+.vscode

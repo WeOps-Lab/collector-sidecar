@@ -1,10 +1,13 @@
 #!/bin/bash
 
-ARCHS=( x86 x86_64 )
-FILEBEAT_VERSION=8.7.0
-WINLOGBEAT_VERSION=8.7.0
-PACKETBEAT_VERSION=8.7.0
-AUDITBEAT_VERSION=8.7.0
+set -eo pipefail
+
+FILEBEAT_VERSION=8.9.0
+FILEBEAT_VERSION_32=7.17.12
+WINLOGBEAT_VERSION=8.9.0
+WINLOGBEAT_VERSION_32=7.17.12
+AUDITBEAT_VERSION=8.9.0
+AUDITBEAT_VERSION_32=7.17.12
 
 # $1: beat name
 # $2: beat operating system
@@ -23,7 +26,7 @@ download_beat()
     archive="/tmp/${name}-${version}-${os}-${arch}.zip"
     if [ ! -f $archive ]; then
       echo "==> Downloading ${name}-${version}-${os}-${arch}"
-      curl -o $archive https://artifacts.elastic.co/downloads/beats/${name}/${name}-oss-${version}-${os}-${arch}.zip
+      curl -fsSL -o $archive https://artifacts.elastic.co/downloads/beats/${name}/${name}-oss-${version}-${os}-${arch}.zip
     fi
     unzip -o -d dist/collectors/${name}/${os}/${arch} $archive
     mv dist/collectors/${name}/${os}/${arch}/${name}-${version}-${os}-${arch}/* dist/collectors/${name}/${os}/${arch}/
@@ -33,22 +36,24 @@ download_beat()
     archive="/tmp/${name}-${version}-${os}-${arch}.tar.gz"
     if [ ! -f $archive ]; then
       echo "==> Downloading ${name}-${version}-${os}-${arch}"
-      curl -o $archive https://artifacts.elastic.co/downloads/beats/${name}/${name}-oss-${version}-${os}-${arch}.tar.gz
+      curl -fsSL -o $archive https://artifacts.elastic.co/downloads/beats/${name}/${name}-oss-${version}-${os}-${arch}.tar.gz
     fi
     tar -xzf $archive --strip-components=1 -C dist/collectors/${name}/${os}/${arch}
     ;;
   esac
 }
 
-for ARCH in "${ARCHS[@]}"
-do
-  download_beat "filebeat" "windows" ${FILEBEAT_VERSION} ${ARCH}
-  download_beat "filebeat" "linux" ${FILEBEAT_VERSION} ${ARCH}
-  download_beat "winlogbeat" "windows" ${WINLOGBEAT_VERSION} ${ARCH}
-  download_beat "winlogbeat" "linux" ${WINLOGBEAT_VERSION} ${ARCH}
-  download_beat "packetbeat" "linux" ${WINLOGBEAT_VERSION} ${ARCH}
-  download_beat "packetbeat" "windows" ${WINLOGBEAT_VERSION} ${ARCH}
-  download_beat "auditbeat" "linux" ${WINLOGBEAT_VERSION} ${ARCH}
-  download_beat "auditbeat" "windows" ${WINLOGBEAT_VERSION} ${ARCH}
-done
+download_beat "filebeat" "linux" ${FILEBEAT_VERSION} x86_64
+download_beat "filebeat" "linux" ${FILEBEAT_VERSION_32} x86
+download_beat "filebeat" "linux" ${FILEBEAT_VERSION} arm64
+
+download_beat "auditbeat" "linux" ${FILEBEAT_VERSION} x86_64
+download_beat "auditbeat" "linux" ${AUDITBEAT_VERSION_32} x86
+download_beat "auditbeat" "linux" ${AUDITBEAT_VERSION} arm64
+
+download_beat "filebeat" "windows" ${FILEBEAT_VERSION} x86_64
+download_beat "filebeat" "windows" ${FILEBEAT_VERSION_32} x86
+
+download_beat "winlogbeat" "windows" ${WINLOGBEAT_VERSION} x86_64
+download_beat "winlogbeat" "windows" ${WINLOGBEAT_VERSION_32} x86
 

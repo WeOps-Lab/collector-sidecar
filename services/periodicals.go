@@ -16,12 +16,12 @@
 package services
 
 import (
+	"github.com/Graylog2/collector-sidecar/common/rest"
 	"net/http"
 	"time"
 
 	"github.com/Graylog2/collector-sidecar/api"
 	"github.com/Graylog2/collector-sidecar/api/graylog"
-	"github.com/Graylog2/collector-sidecar/api/rest"
 	"github.com/Graylog2/collector-sidecar/assignments"
 	"github.com/Graylog2/collector-sidecar/backends"
 	"github.com/Graylog2/collector-sidecar/context"
@@ -34,7 +34,7 @@ var httpClient *http.Client
 
 func StartPeriodicals(context *context.Ctx) {
 	if httpClient == nil {
-		httpClient = rest.NewHTTPClient(api.GetTlsConfig(context))
+		httpClient = rest.NewHTTPClient(rest.GetTlsConfig(context))
 	}
 
 	go func() {

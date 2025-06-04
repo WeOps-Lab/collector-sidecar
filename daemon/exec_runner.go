@@ -17,6 +17,8 @@ package daemon
 
 import (
 	"errors"
+	"fmt"
+	"github.com/Graylog2/collector-sidecar/common/rest"
 	"github.com/Graylog2/collector-sidecar/helpers"
 	"io/ioutil"
 	"os"
@@ -210,6 +212,23 @@ func (r *ExecRunner) start() error {
 	r.cmd = exec.Command(r.exec, quotedArgs...)
 	r.cmd.Dir = r.daemon.Dir
 	r.cmd.Env = append(os.Environ(), r.daemon.Env...)
+	// 打印日志，输出执行命令
+	log.Infof("[%s] Executing command: %s %s", r.name, r.cmd.Env, r.cmd)
+
+	httpClient := rest.NewHTTPClient(rest.GetTlsConfig(r.context))
+	envConfig, err := RequestEnvConfiguration(httpClient, r.backend.ConfigId, r.context)
+	if err != nil {
+		log.Error("Can't fetch environment variables: ", err)
+	} else {
+		var extraEnv []string
+		for k, v := range envConfig.EnvConfig {
+			extraEnv = append(extraEnv, fmt.Sprintf("%s=%s", k, v))
+		}
+		r.cmd.Env = append(r.cmd.Env, extraEnv...)
+	}
+	//打印日志，输出环境变量
+	log.Infof("[%s] Environment variables: %v", r.name, r.cmd.Env)
+
 	Setpgid(r.cmd) // run with a new process group (unix only)
 
 	r.terminate = make(chan error)

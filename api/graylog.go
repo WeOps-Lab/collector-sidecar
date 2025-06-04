@@ -17,8 +17,8 @@ package api
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
+	"github.com/Graylog2/collector-sidecar/common/rest"
 	"github.com/Graylog2/collector-sidecar/helpers"
 	"io"
 	"net/http"
@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/Graylog2/collector-sidecar/api/graylog"
-	"github.com/Graylog2/collector-sidecar/api/rest"
 	"github.com/Graylog2/collector-sidecar/backends"
 	"github.com/Graylog2/collector-sidecar/cfgfile"
 	"github.com/Graylog2/collector-sidecar/common"
@@ -272,14 +271,6 @@ func updateRuntimeConfiguration(respBody *graylog.ResponseCollectorRegistration,
 		}
 	}
 	return nil
-}
-
-func GetTlsConfig(ctx *context.Ctx) *tls.Config {
-	var tlsConfig *tls.Config
-	if ctx.UserConfig.TlsSkipVerify {
-		tlsConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-	return tlsConfig
 }
 
 func NewStatusRequest(serverVersion *GraylogVersion) graylog.StatusRequest {

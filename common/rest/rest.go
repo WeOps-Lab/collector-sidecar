@@ -71,6 +71,14 @@ func (r *ErrorResponse) Error() string {
 		r.Response.Request.Method, r.Response.Request.URL, r.Response.StatusCode, r.Message)
 }
 
+func GetTlsConfig(ctx *context.Ctx) *tls.Config {
+	var tlsConfig *tls.Config
+	if ctx.UserConfig.TlsSkipVerify {
+		tlsConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	return tlsConfig
+}
+
 func NewHTTPClient(tlsConfig *tls.Config) *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{

@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -198,36 +199,58 @@ func (r *ExecRunner) start() error {
 		return err
 	}
 
-	// setup process environment
-	var err error
-	var quotedArgs []string
-	if runtime.GOOS == "windows" {
-		quotedArgs = helpers.CommandLineToArgv(r.args)
-	} else {
-		quotedArgs, err = shlex.Split(r.args)
-	}
-	if err != nil {
-		return err
-	}
-	r.cmd = exec.Command(r.exec, quotedArgs...)
-	r.cmd.Dir = r.daemon.Dir
-	r.cmd.Env = append(os.Environ(), r.daemon.Env...)
-	// 打印日志，输出执行命令
-	log.Infof("[%s] Executing command: %s %s", r.name, r.cmd.Env, r.cmd)
+	// 准备环境变量
+	envVars := append(os.Environ(), r.daemon.Env...)
 
+	// 获取额外的环境变量
 	httpClient := rest.NewHTTPClient(rest.GetTlsConfig(r.context))
 	envConfig, err := RequestEnvConfiguration(httpClient, r.backend.ConfigId, r.context)
 	if err != nil {
 		log.Error("Can't fetch environment variables: ", err)
 	} else {
-		var extraEnv []string
 		for k, v := range envConfig.EnvConfig {
-			extraEnv = append(extraEnv, fmt.Sprintf("%s=%s", k, v))
+			envVars = append(envVars, fmt.Sprintf("%s=%s", k, v))
 		}
-		r.cmd.Env = append(r.cmd.Env, extraEnv...)
 	}
-	//打印日志，输出环境变量
-	log.Infof("[%s] Environment variables: %v", r.name, r.cmd.Env)
+
+	// 把环境变量放入一个map，用于后续替换
+	envMap := make(map[string]string)
+	for _, env := range envVars {
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
+		}
+	}
+
+	// 替换参数中的环境变量引用
+	argsWithEnvVars := r.args
+	// 替换 $VAR 和 ${VAR} 格式的环境变量
+	for key, value := range envMap {
+		argsWithEnvVars = strings.ReplaceAll(argsWithEnvVars, "$"+key, value)
+		argsWithEnvVars = strings.ReplaceAll(argsWithEnvVars, "${"+key+"}", value)
+	}
+
+	// 解析参数
+	var quotedArgs []string
+	if runtime.GOOS == "windows" {
+		quotedArgs = helpers.CommandLineToArgv(argsWithEnvVars)
+	} else {
+		quotedArgs, err = shlex.Split(argsWithEnvVars)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Infof("[%s] 原始命令参数: %s", r.name, r.args)
+	log.Infof("[%s] 环境变量替换后: %s", r.name, argsWithEnvVars)
+
+	// 创建命令
+	r.cmd = exec.Command(r.exec, quotedArgs...)
+	r.cmd.Dir = r.daemon.Dir
+	r.cmd.Env = envVars
+
+	// 日志输出
+	log.Infof("[%s] 执行命令: %s %v", r.name, r.exec, quotedArgs)
 
 	Setpgid(r.cmd) // run with a new process group (unix only)
 
@@ -239,7 +262,6 @@ func (r *ExecRunner) start() error {
 	r.setSupervised(true)
 	return nil
 }
-
 func (r *ExecRunner) Shutdown() error {
 	r.signals <- "shutdown"
 	return nil

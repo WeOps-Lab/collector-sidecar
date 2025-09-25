@@ -52,7 +52,10 @@ func GetServerVersion(httpClient *http.Client, ctx *context.Ctx) (*GraylogVersio
 		params["node_id"] = ctx.NodeId
 	}
 
-	r, err := c.NewRequest("GET", "/", params, nil)
+	// 生成加密密钥
+	encryptionKey := helpers.GenerateUUID()
+
+	r, err := c.NewRequest("GET", "/", params, nil, encryptionKey)
 	if err != nil {
 		log.Errorf("Cannot retrieve server version %v", err)
 		return fallbackVersion, err
@@ -75,7 +78,10 @@ func RequestBackendList(httpClient *http.Client, checksum string, ctx *context.C
 		params["node_id"] = ctx.NodeId
 	}
 
-	r, err := c.NewRequest("GET", "/sidecar/collectors", params, nil)
+	// 生成加密密钥
+	encryptionKey := helpers.GenerateUUID()
+
+	r, err := c.NewRequest("GET", "/sidecar/collectors", params, nil, encryptionKey)
 	if err != nil {
 		msg := "Can not initialize REST request"
 		system.GlobalStatus.Set(backends.StatusError, msg)
@@ -123,7 +129,10 @@ func RequestConfiguration(
 	c := rest.NewClient(httpClient, ctx)
 	c.BaseURL = ctx.ServerUrl
 
-	r, err := c.NewRequest("GET", "/sidecar/configurations/render/"+ctx.NodeId+"/"+configurationId, nil, nil)
+	// 生成加密密钥
+	encryptionKey := helpers.GenerateUUID()
+
+	r, err := c.NewRequest("GET", "/sidecar/configurations/render/"+ctx.NodeId+"/"+configurationId, nil, nil, encryptionKey)
 	if err != nil {
 		msg := "Can not initialize REST request"
 		system.GlobalStatus.Set(backends.StatusError, msg)
@@ -208,7 +217,10 @@ func UpdateRegistration(httpClient *http.Client, checksum string, ctx *context.C
 		registration.NodeDetails.Tags = ctx.UserConfig.Tags
 	}
 
-	r, err := c.NewRequest("PUT", "/sidecars/"+ctx.NodeId, nil, registration)
+	// 生成加密密钥
+	encryptionKey := helpers.GenerateUUID()
+
+	r, err := c.NewRequest("PUT", "/sidecars/"+ctx.NodeId, nil, registration, encryptionKey)
 	if checksum != "" {
 		r.Header.Add("If-None-Match", "\""+checksum+"\"")
 	}

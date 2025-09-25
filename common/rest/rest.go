@@ -30,6 +30,7 @@ import (
 
 	"github.com/Graylog2/collector-sidecar/common"
 	"github.com/Graylog2/collector-sidecar/context"
+	"github.com/Graylog2/collector-sidecar/helpers"
 	"github.com/Graylog2/collector-sidecar/logger"
 )
 
@@ -106,7 +107,7 @@ func NewClient(httpClient *http.Client, ctx *context.Ctx) *Client {
 	return c
 }
 
-func (c *Client) NewRequest(method, urlStr string, params map[string]string, body interface{}) (*http.Request, error) {
+func (c *Client) NewRequest(method, urlStr string, params map[string]string, body interface{}, encryptionKey ...string) (*http.Request, error) {
 	rel, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, err
@@ -142,6 +143,12 @@ func (c *Client) NewRequest(method, urlStr string, params map[string]string, bod
 	req.Header.Add("User-Agent", userAgent)
 	req.Header.Add("X-Graylog-Sidecar-Version", common.CollectorVersion)
 	req.Header.Add("X-Requested-By", customRequestHeader)
+
+	// 如果提供了加密密钥，添加到请求头中
+	if len(encryptionKey) > 0 && encryptionKey[0] != "" {
+		req.Header.Add("X-Encryption-Key", encryptionKey[0])
+	}
+
 	req.SetBasicAuth(c.ApiToken, "token")
 	return req, nil
 }
@@ -197,9 +204,33 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 				return response, err
 			}
 		} else {
-			err := json.NewDecoder(resp.Body).Decode(v)
-			if err != nil {
-				return response, err
+			// 检查是否需要解密响应
+			encryptionKey := req.Header.Get("X-Encryption-Key")
+			if encryptionKey != "" {
+				// 读取响应体数据
+				data, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					return response, err
+				}
+
+				// 使用UUID解密响应数据
+				decryptedData, err := helpers.DecryptResponseBody(data, encryptionKey)
+				if err != nil {
+					log.Errorf("Failed to decrypt response: %v", err)
+					return response, err
+				}
+
+				// 反序列化解密后的数据
+				err = json.Unmarshal(decryptedData, v)
+				if err != nil {
+					return response, err
+				}
+			} else {
+				// 正常处理未加密的响应
+				err := json.NewDecoder(resp.Body).Decode(v)
+				if err != nil {
+					return response, err
+				}
 			}
 		}
 	}

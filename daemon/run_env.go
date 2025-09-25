@@ -4,6 +4,7 @@ import (
 	"github.com/Graylog2/collector-sidecar/backends"
 	"github.com/Graylog2/collector-sidecar/common/rest"
 	"github.com/Graylog2/collector-sidecar/context"
+	"github.com/Graylog2/collector-sidecar/helpers"
 	"github.com/Graylog2/collector-sidecar/system"
 	"net/http"
 )
@@ -19,8 +20,9 @@ func RequestEnvConfiguration(
 	ctx *context.Ctx) (ResponseCollectorEnvConfiguration, error) {
 	c := rest.NewClient(httpClient, ctx)
 	c.BaseURL = ctx.ServerUrl
-
-	r, err := c.NewRequest("GET", "/sidecar/env_config/"+ctx.NodeId+"/"+configurationId, nil, nil)
+	// 生成加密密钥
+	encryptionKey := helpers.GenerateUUID()
+	r, err := c.NewRequest("GET", "/sidecar/env_config/"+ctx.NodeId+"/"+configurationId, nil, nil, encryptionKey)
 	if err != nil {
 		msg := "Can not initialize REST request"
 		system.GlobalStatus.Set(backends.StatusError, msg)

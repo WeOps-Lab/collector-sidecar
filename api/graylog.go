@@ -46,7 +46,13 @@ func GetServerVersion(httpClient *http.Client, ctx *context.Ctx) (*GraylogVersio
 
 	c := rest.NewClient(httpClient, ctx)
 	c.BaseURL = ctx.ServerUrl
-	r, err := c.NewRequest("GET", "/", nil, nil)
+
+	params := make(map[string]string)
+	if ctx.NodeId != "" {
+		params["node_id"] = ctx.NodeId
+	}
+
+	r, err := c.NewRequest("GET", "/", params, nil)
 	if err != nil {
 		log.Errorf("Cannot retrieve server version %v", err)
 		return fallbackVersion, err
@@ -64,7 +70,12 @@ func RequestBackendList(httpClient *http.Client, checksum string, ctx *context.C
 	c := rest.NewClient(httpClient, ctx)
 	c.BaseURL = ctx.ServerUrl
 
-	r, err := c.NewRequest("GET", "/sidecar/collectors", nil, nil)
+	params := make(map[string]string)
+	if ctx.NodeId != "" {
+		params["node_id"] = ctx.NodeId
+	}
+
+	r, err := c.NewRequest("GET", "/sidecar/collectors", params, nil)
 	if err != nil {
 		msg := "Can not initialize REST request"
 		system.GlobalStatus.Set(backends.StatusError, msg)
